@@ -29,13 +29,28 @@ def fetch_stock_data(symbol):
     end = datetime.datetime.today()
     start = end - datetime.timedelta(days=180)
     df = yf.download(symbol, start=start, end=end)
+    
     if df.empty:
         return None
+    
+    # 處理空值（NaN）
+    df = df.dropna()  # 去除含有 NaN 的行
+    
+    # 計算移動平均
     df['MA5'] = df['Close'].rolling(window=5).mean()
     df['MA20'] = df['Close'].rolling(window=20).mean()
     df['MA60'] = df['Close'].rolling(window=60).mean()
-    df['RSI'] = ta.momentum.RSIIndicator(df['Close']).rsi()
+
+    # 計算 RSI 指標
+    try:
+        rsi_indicator = ta.momentum.RSIIndicator(df['Close'])
+        df['RSI'] = rsi_indicator.rsi()
+    except Exception as e:
+        print(f"Error calculating RSI for {symbol}: {e}")
+        df['RSI'] = None  # 如果 RSI 計算失敗，設為 None
+    
     return df
+
 
 # ----------------------
 # 函數：評分系統
