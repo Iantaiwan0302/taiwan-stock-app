@@ -32,10 +32,15 @@ def fetch_stock_data(symbol):
     
     if df.empty:
         return None
+
+    # 檢查資料行數，若不足 14 筆資料，無法計算 RSI
+    if len(df) < 14:
+        print(f"Error: Not enough data for {symbol} to calculate RSI")
+        return None
     
-    # 處理空值（NaN）
-    df = df.dropna()  # 去除含有 NaN 的行
-    
+    # 去除含有 NaN 的行
+    df = df.dropna()
+
     # 計算移動平均
     df['MA5'] = df['Close'].rolling(window=5).mean()
     df['MA20'] = df['Close'].rolling(window=20).mean()
@@ -50,6 +55,7 @@ def fetch_stock_data(symbol):
         df['RSI'] = None  # 如果 RSI 計算失敗，設為 None
     
     return df
+
 
 
 # ----------------------
