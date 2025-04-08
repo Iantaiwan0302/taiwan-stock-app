@@ -1,47 +1,38 @@
-import streamlit as st
-import pandas as pd
-import yfinance as yf
 import datetime
+import pandas as pd
 import ta
+from finmind.data import DataLoader
 
-# ----------------------
-# 參數設定
-# ----------------------
-st.set_page_config(page_title="台股智能選股工具", layout="wide")
-st.title("📈 台股智能選股工具（初版）")
-
-# 預設台股股票代碼清單（可擴充）
-tw_stocks = {
-    "台積電": "2330.TW",
-    "聯電": "2303.TW",
-    "中華電": "2412.TW",
-    "鴻海": "2317.TW",
-    "玉山金": "2884.TW",
-    "台達電": "2308.TW",
-    "長榮": "2603.TW",
-    "中鋼": "2002.TW"
-}
-
-# ----------------------
-# 函數：取得股價與計算技術指標
-# ----------------------
 def fetch_stock_data(symbol):
+    # 初始化 FinMind 的資料載入器
+    loader = DataLoader()
+
+    # 設定日期範圍
     end = datetime.datetime.today()
     start = end - datetime.timedelta(days=180)
-    df = yf.download(symbol, start=start, end=end)
-    
+
+    # 從 FinMind 取得台股資料
+    try:
+        df = loader.taiwan_stock_price(symbol=symbol, start_date=start.strftime('%Y-%m-%d'), end_date=end.strftime('%Y-%m-%d'))
+    except Exception as e:
+        print(f"Error fetching data from FinMind for {symbol}: {e}")
+        return None
+
     if df.empty:
         print(f"No data available for {symbol}")
         return None
-    
-    # 列印 df 的結構和前幾行資料以便檢查
+
+    # 顯示前幾行數據檢查
     print(f"DataFrame structure for {symbol}:")
     print(df.head())
 
-    # 檢查 df 是否包含 'Close' 欄位
-    if 'Close' not in df.columns:
-        print(f"Error: 'Close' column not found in the data for {symbol}")
+    # 檢查 df 是否包含 'close' 欄位
+    if 'close' not in df.columns:
+        print(f"Error: 'close' column not found in the data for {symbol}")
         return None
+
+    # 重新命名為 'Close' 以便後續使用
+    df.rename(columns={'close': 'Close'}, inplace=True)
 
     # 檢查資料行數，若不足 14 筆資料，無法計算 RSI
     if len(df) < 14:
@@ -76,72 +67,11 @@ def fetch_stock_data(symbol):
     
     return df
 
+# 測試用：請在這裡填入你想查詢的台股股票代碼
+symbol = '2330'  # 例如台積電的股票代碼
+df = fetch_stock_data(symbol)
 
-
-
-
-# ----------------------
-# 函數：評分系統
-# ----------------------
-def evaluate_stock(df):
-    score = 0
-    latest = df.iloc[-1]
-    close = latest['Close']
-
-    # 均線評分
-    if close > latest['MA20']:
-        score += 5
-    if close > latest['MA60']:
-        score += 5
-
-    # RSI 評分
-    if 50 < latest['RSI'] < 70:
-        score += 5
-    elif latest['RSI'] >= 70:
-        score += 2
-
-    return score
-
-# ----------------------
-# 主區塊：顯示選股結果
-# ----------------------
-st.subheader("🔥 自動選股推薦")
-results = []
-
-for name, symbol in tw_stocks.items():
-    df = fetch_stock_data(symbol)
-    if df is not None:
-        score = evaluate_stock(df)
-        latest_price = df.iloc[-1]['Close']
-        results.append({
-            "名稱": name,
-            "代號": symbol,
-            "最新股價": round(latest_price, 2),
-            "評分": score
-        })
-
-# 顯示前 5 名股票
-if results:
-    results_df = pd.DataFrame(results)
-    top_stocks = results_df.sort_values(by="評分", ascending=False).head(5)
-    st.dataframe(top_stocks, use_container_width=True)
-else:
-    st.warning("無法取得股票資料，請稍後再試。")
-
-# ----------------------
-# 個股圖表顯示
-# ----------------------
-st.subheader("🔍 個股技術分析圖")
-selected_stock = st.selectbox("選擇股票查看技術圖表：", list(tw_stocks.keys()))
-
-df = fetch_stock_data(tw_stocks[selected_stock])
 if df is not None:
-    import plotly.graph_objects as go
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name='收盤價'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['MA20'], name='MA20'))
-    fig.add_trace(go.Scatter(x=df.index, y=df['MA60'], name='MA60'))
-    fig.update_layout(title=f"{selected_stock} 技術分析圖", xaxis_title="日期", yaxis_title="價格")
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("無法取得該股票資料")
+    # 顯示結果
+    print(df.tail())
+
