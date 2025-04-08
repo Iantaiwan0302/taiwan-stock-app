@@ -33,6 +33,10 @@ def fetch_stock_data(symbol):
     if df.empty:
         print(f"No data available for {symbol}")
         return None
+    
+    # 列印 df 的結構和前幾行資料以便檢查
+    print(f"DataFrame structure for {symbol}:")
+    print(df.head())
 
     # 檢查 df 是否包含 'Close' 欄位
     if 'Close' not in df.columns:
@@ -48,8 +52,12 @@ def fetch_stock_data(symbol):
     df = df.dropna()
 
     # 確保 Close 欄位是數字型別，無法轉換為數字的資料設為 NaN
-    df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
-    
+    try:
+        df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
+    except Exception as e:
+        print(f"Error converting 'Close' column to numeric: {e}")
+        return None
+
     # 去除轉換後為 NaN 的行
     df = df.dropna(subset=['Close'])
 
