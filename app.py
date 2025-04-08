@@ -41,6 +41,11 @@ def fetch_stock_data(symbol):
     # 去除含有 NaN 的行
     df = df.dropna()
 
+    # 確保 Close 欄位是數字格式
+    if not pd.api.types.is_numeric_dtype(df['Close']):
+        print(f"Error: The 'Close' column for {symbol} contains non-numeric data.")
+        return None
+
     # 計算移動平均
     df['MA5'] = df['Close'].rolling(window=5).mean()
     df['MA20'] = df['Close'].rolling(window=20).mean()
@@ -55,6 +60,7 @@ def fetch_stock_data(symbol):
         df['RSI'] = None  # 如果 RSI 計算失敗，設為 None
     
     return df
+
 
 
 
