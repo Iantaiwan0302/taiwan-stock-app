@@ -31,6 +31,12 @@ def fetch_stock_data(symbol):
     df = yf.download(symbol, start=start, end=end)
     
     if df.empty:
+        print(f"No data available for {symbol}")
+        return None
+
+    # 檢查 df 是否包含 'Close' 欄位
+    if 'Close' not in df.columns:
+        print(f"Error: 'Close' column not found in the data for {symbol}")
         return None
 
     # 檢查資料行數，若不足 14 筆資料，無法計算 RSI
